@@ -1,4 +1,5 @@
 sgzip
 sgrequests
 pandas
+sglogging
 
