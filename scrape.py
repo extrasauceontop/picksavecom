@@ -41,7 +41,7 @@ for code in search:
     response = session.get(url, headers=headers).text
 
     soup = bs(response, "html.parser")
-    print(soup)
+    logger.info(soup)
     data = json.loads(soup.find_all("script")[-3].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
     coords = []
     try:
