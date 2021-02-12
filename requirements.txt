@@ -2,4 +2,5 @@ sgzip
 sgrequests
 pandas
 sglogging
+bs4
 
