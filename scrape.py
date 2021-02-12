@@ -41,8 +41,9 @@ for code in search:
     response = session.get(url, headers=headers).text
 
     soup = bs(response, "html.parser")
-    logger.info(soup)
-    data = json.loads(soup.find_all("script")[-3].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
+    scripts = soup.find_all("script")
+    logger.info(scripts)
+    #data = json.loads(soup.find_all("script")[-3].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
     coords = []
     try:
         for item in data["storeSearch"]["storeSearchReducer"]["searchResults"]["fuel"]:
