@@ -1,7 +1,13 @@
-import os
 from sgrequests import SgRequests
+from bs4 import BeautifulSoup as bs
 from sgzip.dynamic import DynamicZipSearch, SearchableCountries
+import json
 import pandas as pd
+from sglogging import SgLogSetup
+
+logger = SgLogSetup().get_logger("pick_save")
+
+logger.info("This printed")
 
 locator_domains = []
 page_urls = []
@@ -18,33 +24,36 @@ latitudes = []
 longitudes = []
 hours_of_operations = []
 
-headers = {'User-Agent': 'PostmanRuntime/7.19.0', "Upgrade-Insecure-Requests": "1", "DNT": "1", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.5", "Accept-Encoding": "gzip, deflate"}
-session = SgRequests(retry_behavior=None)
-url = 'https://www.picknsave.com/stores/api/graphql'
-search = DynamicZipSearch(country_codes=[SearchableCountries.USA])
+search = DynamicZipSearch(country_codes=[SearchableCountries.USA], max_search_results=100)
+store_types = {"Pharmacy": "C",
+               "Marketplace": "M",
+               "Healthcare Clinic": "LC"}
 
-for postal in search:
-    data = {
-        "query": "\n      query storeSearch($searchText: String!, $filters: [String]!) {\n        storeSearch(searchText: $searchText, filters: $filters) {\n          stores {\n            ...storeSearchResult\n          }\n          fuel {\n            ...storeSearchResult\n          }\n          shouldShowFuelMessage\n        }\n      }\n      \n  fragment storeSearchResult on Store {\n    banner\n    vanityName\n    divisionNumber\n    storeNumber\n    phoneNumber\n    showWeeklyAd\n    showShopThisStoreAndPreferredStoreButtons\n    storeType\n    distance\n    latitude\n    longitude\n    tz\n    ungroupedFormattedHours {\n      displayName\n      displayHours\n      isToday\n    }\n    address {\n      addressLine1\n      addressLine2\n      city\n      countryCode\n      stateCode\n      zip\n    }\n    pharmacy {\n      phoneNumber\n    }\n    departments {\n      code\n    }\n    fulfillmentMethods{\n      hasPickup\n      hasDelivery\n    }\n  }\n",
-        "variables": {
-            "searchText": postal,
-            "filters": []
-        },
-        "operationName": "storeSearch"
-    }
-    response = session.post(url, json=data, headers=headers).json()
-    print(response)
-    x = 0
+session = SgRequests()
+
+x = 0
+for code in search:
+    print(x)
+    url = "https://www.picknsave.com/stores/search?searchText=" + code
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36', "Upgrade-Insecure-Requests": "1","DNT": "1","Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language": "en-US,en;q=0.5","Accept-Encoding": "gzip, deflate"}
+
+    #data = json.loads(bs(session.get(url, headers=headers).text, "html.parser").find_all("script")[-3].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
+
+    response = session.get(url, headers=headers).text
+
+    soup = bs(response, "html.parser")
+
+    data = json.loads(soup.find_all("script")[-3].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
     coords = []
-    if x % 100 == 0:
-        session = ""
-        session = SgRequests()
     try:
-        for item in data["data"]["storeSearch"]["storeSearchReducer"]["searchResults"]["fuel"]:
+        for item in data["storeSearch"]["storeSearchReducer"]["searchResults"]["fuel"]:
+
+            #print(item)
 
             locator_domain = "picknsave.com"
             page_url = url
             location_name = item["vanityName"]
+            logger.info(location_name)
             address = item["address"]["addressLine1"]
             city = item["address"]["city"]
             state = item["address"]["stateCode"]
@@ -61,10 +70,6 @@ for postal in search:
                 hours = day_hours["displayHours"]
 
                 hour_string = hour_string + day + ": " + hours + ", "
-
-            print(x)
-            print(location_name)
-            print("")
 
             locator_domains.append(locator_domain)
             page_urls.append(page_url)
@@ -83,15 +88,31 @@ for postal in search:
             coords.append([latitude, longitude])
 
     except Exception as ex:
-        print("search_number: " + str(x))
-        print(postal)
-        print(data["storeSearch"]["storeSearchReducer"])
-        print(ex)
+        logger.info("search_number: " + str(x))
+        logger.info(code)
+        logger.info(data["storeSearch"]["storeSearchReducer"])
+        logger.info(ex)
 
-    
     search.mark_found(coords)
     x = x+1
 
+    if x > 10:
+        break
+    
+logger.info(len(locator_domains))
+logger.info(len(page_urls))
+logger.info(len(location_names))
+logger.info(len(street_addresses))
+logger.info(len(citys))
+logger.info(len(states))
+logger.info(len(zips))
+logger.info(len(store_numbers))
+logger.info(len(phones))
+logger.info(len(latitudes))
+logger.info(len(longitudes))
+logger.info(len(hours_of_operations))
+logger.info(len(country_codes))
+logger.info(len(location_types))
 
 df = pd.DataFrame(
     {
@@ -111,3 +132,5 @@ df = pd.DataFrame(
         "location_type": location_types,
     }
 )
+
+df.to_csv(data.csv, index=False)
