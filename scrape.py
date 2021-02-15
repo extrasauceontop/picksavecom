@@ -42,13 +42,11 @@ for code in search:
 
     soup = bs(response, "html.parser")
     scripts = soup.find_all("script")
-    logger.info(scripts)
-    data = json.loads(soup.find_all("script")[0].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
+    #logger.info(scripts[0])
+    data = json.loads(soup.find_all("script")[-3].text.strip().split("parse(")[1].split("\')")[0][1:].replace("\\", "\\\\").replace("\\\\\\\\\"", ""))
     coords = []
     try:
         for item in data["storeSearch"]["storeSearchReducer"]["searchResults"]["fuel"]:
-
-            #print(item)
 
             locator_domain = "picknsave.com"
             page_url = url
@@ -84,6 +82,7 @@ for code in search:
             latitudes.append(latitude)
             longitudes.append(longitude)
             hours_of_operations.append(hour_string)
+            phones.append(phone)
 
             coords.append([latitude, longitude])
 
@@ -99,20 +98,20 @@ for code in search:
     if x > 10:
         break
     
-logger.info(len(locator_domains))
-logger.info(len(page_urls))
-logger.info(len(location_names))
-logger.info(len(street_addresses))
-logger.info(len(citys))
-logger.info(len(states))
-logger.info(len(zips))
-logger.info(len(store_numbers))
-logger.info(len(phones))
-logger.info(len(latitudes))
-logger.info(len(longitudes))
-logger.info(len(hours_of_operations))
-logger.info(len(country_codes))
-logger.info(len(location_types))
+# logger.info(len(locator_domains))
+# logger.info(len(page_urls))
+# logger.info(len(location_names))
+# logger.info(len(street_addresses))
+# logger.info(len(citys))
+# logger.info(len(states))
+# logger.info(len(zips))
+# logger.info(len(store_numbers))
+# logger.info(len(phones))
+# logger.info(len(latitudes))
+# logger.info(len(longitudes))
+# logger.info(len(hours_of_operations))
+# logger.info(len(country_codes))
+# logger.info(len(location_types))
 
 df = pd.DataFrame(
     {
@@ -133,4 +132,4 @@ df = pd.DataFrame(
     }
 )
 
-df.to_csv(data.csv, index=False)
+df.to_csv("data.csv", index=False)
