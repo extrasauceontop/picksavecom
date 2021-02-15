@@ -48,6 +48,9 @@ for code in search:
     logger.info(data)
     data = data[-3]
     data = data.text.strip()
+    logger.info("")
+    logger.info("")
+    logger.info(data)
     data = data.split("parse(")[1]
     data = data.split("\')")[0][1:]
     data = data.replace("\\", "\\\\").replace("\\\\\\\\\"", "")
